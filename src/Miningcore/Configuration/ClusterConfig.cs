@@ -2,6 +2,9 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using AspNetCoreRateLimit;
+using Microsoft.AspNetCore.Identity;
+using Miningcore.Crypto.Hashing.Kawpow;
+using Miningcore.Native;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
@@ -22,6 +25,9 @@ public enum CoinFamily
     [EnumMember(Value = "equihash")]
     Equihash,
 
+    [EnumMember(Value = "conceal")]
+    Conceal,
+    
     [EnumMember(Value = "cryptonote")]
     Cryptonote,
 
@@ -30,6 +36,9 @@ public enum CoinFamily
 
     [EnumMember(Value = "ergo")]
     Ergo,
+
+    [EnumMember(Value = "ravencoin")]
+    Ravencoin,
 }
 
 public abstract partial class CoinTemplate
@@ -57,6 +66,13 @@ public abstract partial class CoinTemplate
     /// </summary>
     [JsonProperty(Order = -9)]
     public string Website { get; set; }
+
+    /// <summary>
+    /// Market
+    /// </summary>
+    [JsonProperty(Order = -9)]
+    public string Market { get; set; }
+
 
     /// <summary>
     /// Family
@@ -122,9 +138,11 @@ public abstract partial class CoinTemplate
     {
         {CoinFamily.Bitcoin, typeof(BitcoinTemplate)},
         {CoinFamily.Equihash, typeof(EquihashCoinTemplate)},
+        {CoinFamily.Conceal, typeof(ConcealCoinTemplate)},
         {CoinFamily.Cryptonote, typeof(CryptonoteCoinTemplate)},
         {CoinFamily.Ethereum, typeof(EthereumCoinTemplate)},
         {CoinFamily.Ergo, typeof(ErgoCoinTemplate)},
+        {CoinFamily.Ravencoin, typeof(RavencoinTemplate)},
     };
 }
 
@@ -176,11 +194,23 @@ public partial class BitcoinTemplate : CoinTemplate
     public bool HasMasterNodes { get; set; }
 
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+    public bool HasSmartNodes { get; set; }
+
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+    public bool HasBrokenSendMany { get; set; } = false;
+
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
     public bool HasFounderFee { get; set; }
+
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+    public bool HasMinerFund { get; set; }
 
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
     [DefaultValue(1.0d)]
     public double ShareMultiplier { get; set; } = 1.0d;
+
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+    public double? HashrateMultiplier { get; set; }
 
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
     public bool CoinbaseIgnoreAuxFlags { get; set; }
@@ -199,6 +229,11 @@ public partial class BitcoinTemplate : CoinTemplate
 
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public string BlockSerializer { get; set; }
+}
+
+public partial class RavencoinTemplate : BitcoinTemplate
+{
+    public EthashLight KawpowHasher { get; set; }
 }
 
 public enum EquihashSubfamily
@@ -306,6 +341,12 @@ public partial class EquihashCoinTemplate : CoinTemplate
     public bool UseBitcoinPayoutHandler { get; set; }
 }
 
+public enum ConcealSubfamily
+{
+    [EnumMember(Value = "none")]
+    None,
+}
+
 public enum CryptonoteSubfamily
 {
     [EnumMember(Value = "none")]
@@ -321,64 +362,64 @@ public enum CryptonightHashType
     RandomARQ,
 
     [EnumMember(Value = "cn0")]
-    Crytonight0,
+    Cryptonight0,
 
     [EnumMember(Value = "cn1")]
-    Crytonight1,
+    Cryptonight1,
 
     [EnumMember(Value = "cn2")]
-    Crytonight2,
+    Cryptonight2,
 
     [EnumMember(Value = "cn-half")]
-    CrytonightHalf,
+    CryptonightHalf,
 
     [EnumMember(Value = "cn-double")]
-    CrytonightDouble,
+    CryptonightDouble,
 
     [EnumMember(Value = "cn-r")]
-    CrytonightR,
+    CryptonightR,
 
     [EnumMember(Value = "cn-rto")]
-    CrytonightRTO,
+    CryptonightRTO,
 
     [EnumMember(Value = "cn-rwz")]
-    CrytonightRWZ,
+    CryptonightRWZ,
 
     [EnumMember(Value = "cn-zls")]
-    CrytonightZLS,
+    CryptonightZLS,
 
     [EnumMember(Value = "cn-ccx")]
-    CrytonightCCX,
+    CryptonightCCX,
 
     [EnumMember(Value = "cn-gpu")]
-    CrytonightGPU,
+    CryptonightGPU,
 
     [EnumMember(Value = "cn-fast")]
-    CrytonightFast,
+    CryptonightFast,
 
     [EnumMember(Value = "cn-xao")]
-    CrytonightXAO,
+    CryptonightXAO,
 
     [EnumMember(Value = "gr")]
     Ghostrider,
 
     [EnumMember(Value = "cn_lite0")]
-    CrytonightLite0,
+    CryptonightLite0,
 
     [EnumMember(Value = "cn_lite1")]
-    CrytonightLite1,
+    CryptonightLite1,
 
     [EnumMember(Value = "cn_heavy")]
-    CrytonightHeavy,
+    CryptonightHeavy,
 
     [EnumMember(Value = "cn_heavy_xhv")]
-    CrytonightHeavyXHV,
+    CryptonightHeavyXHV,
 
     [EnumMember(Value = "cn_heavy_tube")]
-    CrytonightHeavyTube,
+    CryptonightHeavyTube,
 
     [EnumMember(Value = "cn_pico")]
-    CrytonightPico,
+    CryptonightPico,
 
     [EnumMember(Value = "argon_chukwa")]
     ArgonCHUKWA,
@@ -388,6 +429,69 @@ public enum CryptonightHashType
 
     [EnumMember(Value = "argon_wrkz")]
     ArgonWRKZ,
+}
+
+public partial class ConcealCoinTemplate : CoinTemplate
+{
+    [JsonProperty(Order = -7, DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+    [DefaultValue(ConcealSubfamily.None)]
+    [JsonConverter(typeof(StringEnumConverter), true)]
+    public ConcealSubfamily Subfamily { get; set; }
+
+    /// <summary>
+    /// Broader Cryptonight hash family
+    /// </summary>
+    [JsonConverter(typeof(StringEnumConverter), true)]
+    [JsonProperty(Order = -5)]
+    public CryptonightHashType Hash { get; set; }
+
+    /// <summary>
+    /// Set to 0 for automatic selection from blobtemplate
+    /// </summary>
+    [JsonProperty(Order = -4, DefaultValueHandling = DefaultValueHandling.Include)]
+    public int HashVariant { get; set; }
+    
+    /// <summary>
+    /// Conceal network hashrate = `Difficulty / DifficultyTarget`
+    /// See: parameter -> DIFFICULTY_TARGET in src/CryptoNoteConfig.h
+    /// </summary>
+    public ulong DifficultyTarget { get; set; }
+    
+    /// <summary>
+    /// Smallest unit for Blockreward formatting
+    /// </summary>
+    public decimal SmallestUnit { get; set; }
+
+    /// <summary>
+    /// Prefix of a valid address
+    /// See: parameter -> CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX in src/CryptoNoteConfig.h
+    /// </summary>
+    public ulong AddressPrefix { get; set; }
+
+    /// <summary>
+    /// Prefix of a valid testnet-address
+    /// See: parameter -> CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX in src/CryptoNoteConfig.h
+    /// </summary>
+    public ulong AddressPrefixTestnet { get; set; }
+
+    /// <summary>
+    /// Prefix of a valid integrated address
+    /// See: parameter -> CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX in src/CryptoNoteConfig.h
+    /// </summary>
+    public ulong AddressPrefixIntegrated { get; set; }
+
+    /// <summary>
+    /// Prefix of a valid integrated testnet-address
+    /// See: parameter -> CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX in src/CryptoNoteConfig.h
+    /// </summary>
+    public ulong AddressPrefixIntegratedTestnet { get; set; }
+
+    /// <summary>
+    /// Fraction of block reward, the pool really gets to keep
+    /// </summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+    [DefaultValue(1.0d)]
+    public decimal BlockrewardMultiplier { get; set; }
 }
 
 public partial class CryptonoteCoinTemplate : CoinTemplate
@@ -422,16 +526,34 @@ public partial class CryptonoteCoinTemplate : CoinTemplate
     public ulong AddressPrefix { get; set; }
 
     /// <summary>
+    /// Sub Prefix of a valid sub address
+    /// See: namespace config -> CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX in src/cryptonote_config.h
+    /// </summary>
+    public ulong SubAddressPrefix { get; set; }
+
+    /// <summary>
     /// Prefix of a valid testnet-address
     /// See: namespace config -> CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX in src/cryptonote_config.h
     /// </summary>
     public ulong AddressPrefixTestnet { get; set; }
 
     /// <summary>
+    /// Sub Prefix of a valid testnet-address
+    /// See: namespace config -> CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX in src/cryptonote_config.h
+    /// </summary>
+    public ulong SubAddressPrefixTestnet { get; set; }
+
+    /// <summary>
     /// Prefix of a valid stagenet-address
     /// See: namespace config -> CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX in src/cryptonote_config.h
     /// </summary>
     public ulong AddressPrefixStagenet { get; set; }
+
+    /// <summary>
+    /// Sub Prefix of a valid stagenet-address
+    /// See: namespace config -> CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX in src/cryptonote_config.h
+    /// </summary>
+    public ulong SubAddressPrefixStagenet { get; set; }
 
     /// <summary>
     /// Prefix of a valid integrated address
@@ -497,6 +619,7 @@ public partial class ClusterLoggingConfig
     public string ApiLogFile { get; set; }
     public bool PerPoolLogFile { get; set; }
     public string LogBaseDirectory { get; set; }
+    public bool GPDRCompliant { get; set; }
 }
 
 public partial class NetworkEndpointConfig
@@ -573,6 +696,11 @@ public class PostgresConfig : DatabaseConfig
     public bool TlsNoValidate { get; set; }
 
     public int? CommandTimeout { get; set; }
+
+    /// <summary>
+    /// Enable Enabling Npgsql Legacy Timestamp Behavior
+    /// </summary>
+    public bool? EnableLegacyTimestamps { get; set; }
 }
 
 public class TcpProxyProtocolConfig
@@ -677,6 +805,11 @@ public class ClusterBanningConfig
     /// Ban miners for crossing invalid share threshold
     /// </summary>
     public bool? BanOnInvalidShares { get; set; }
+
+    /// <summary>
+    /// Ban clients sending invalid logins
+    /// </summary>
+    public bool? BanOnLoginFailure { get; set; }
 }
 
 public partial class PoolShareBasedBanningConfig
@@ -867,12 +1000,28 @@ public class Statistics
     public int? CleanupDays { get; set; }
 
 }
+
 public class NicehashClusterConfig
 {
     /// <summary>
     /// If set to true, the Nicehash service will be started
     /// </summary>
     public bool EnableAutoDiff { get; set; }
+}
+
+public class ClusterMemoryConfig
+{
+    /// <summary>
+    /// RecyclableMemoryStream MaximumFreeSmallPoolBytes
+    /// WARNING: Don't use this if you don't know what you are doing
+    /// </summary>
+    public int? RmsmMaximumFreeSmallPoolBytes { get; set; }
+
+    /// <summary>
+    /// RecyclableMemoryStream MaximumFreeLargePoolBytes
+    /// WARNING: Don't use this if you don't know what you are doing
+    /// </summary>
+    public int? RmsmMaximumFreeLargePoolBytes { get; set; }
 }
 
 public partial class PoolConfig
@@ -912,6 +1061,11 @@ public partial class PoolConfig
     public bool? EnableInternalStratum { get; set; }
 
     /// <summary>
+    /// Interval in seconds for performing sweeps over connected miners operating on a too high diff to submit shares and adjust varDiff down
+    /// </summary>
+    public int? VardiffIdleSweepInterval { get; set; }
+
+    /// <summary>
     /// Arbitrary extension data
     /// </summary>
     [JsonExtensionData]
@@ -939,6 +1093,7 @@ public partial class ClusterConfig
     public ApiConfig Api { get; set; }
     public Statistics Statistics { get; set; }
     public NicehashClusterConfig Nicehash { get; set; }
+    public ClusterMemoryConfig Memory { get; set; }
 
     /// <summary>
     /// If this is enabled, shares are not written to the database

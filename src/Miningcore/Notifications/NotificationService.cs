@@ -22,8 +22,8 @@ public class NotificationService : BackgroundService
         PushoverClient pushoverClient,
         IMessageBus messageBus)
     {
-        Contract.RequiresNonNull(clusterConfig, nameof(clusterConfig));
-        Contract.RequiresNonNull(messageBus, nameof(messageBus));
+        Contract.RequiresNonNull(clusterConfig);
+        Contract.RequiresNonNull(messageBus);
 
         this.clusterConfig = clusterConfig;
         emailSenderConfig = clusterConfig.Notifications.Email;
@@ -84,7 +84,7 @@ public class NotificationService : BackgroundService
                 txLinks = notification.TxIds.Select(txHash => string.Format(coin.ExplorerTxLink, txHash)).ToArray();
 
             const string subject = "Payout Success Notification";
-            var message = $"Paid {FormatAmount(notification.Amount, notification.PoolId)} from pool {notification.PoolId} to {notification.RecpientsCount} recipients in transaction(s) {(string.Join(", ", txLinks))}";
+            var message = $"Paid {FormatAmount(notification.Amount, notification.PoolId)} from pool {notification.PoolId} to {notification.RecipientsCount} recipients in transaction(s) {(string.Join(", ", txLinks))}";
 
             if(clusterConfig.Notifications?.Admin?.NotifyPaymentSuccess == true)
             {

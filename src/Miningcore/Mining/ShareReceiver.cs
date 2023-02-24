@@ -31,8 +31,8 @@ public class ShareReceiver : BackgroundService
         IMasterClock clock,
         IMessageBus messageBus)
     {
-        Contract.RequiresNonNull(clock, nameof(clock));
-        Contract.RequiresNonNull(messageBus, nameof(messageBus));
+        Contract.RequiresNonNull(clock);
+        Contract.RequiresNonNull(messageBus);
 
         this.clusterConfig = clusterConfig;
         this.clock = clock;
@@ -283,7 +283,7 @@ public class ShareReceiver : BackgroundService
         // store
         share.PoolId = topic;
         share.Created = clock.Now;
-        messageBus.SendMessage(new StratumShare(null, share));
+        messageBus.SendMessage(share);
 
         // update poolstats from shares
         if(poolContext != null)
@@ -292,6 +292,8 @@ public class ShareReceiver : BackgroundService
             var shareMultiplier = poolContext.Pool.ShareMultiplier;
 
             poolContext.Logger.Info(() => $"External {(!string.IsNullOrEmpty(share.Source) ? $"[{share.Source.ToUpper()}] " : string.Empty)}share accepted: D={Math.Round(share.Difficulty * shareMultiplier, 4)}");
+
+            messageBus.SendTelemetry(share.PoolId, TelemetryCategory.Share, TimeSpan.Zero, true);
 
             if(pool.NetworkStats != null)
             {

@@ -33,10 +33,10 @@ public abstract class StratumServer
         RecyclableMemoryStreamManager rmsm,
         IMasterClock clock)
     {
-        Contract.RequiresNonNull(ctx, nameof(ctx));
-        Contract.RequiresNonNull(messageBus, nameof(messageBus));
-        Contract.RequiresNonNull(rmsm, nameof(rmsm));
-        Contract.RequiresNonNull(clock, nameof(clock));
+        Contract.RequiresNonNull(ctx);
+        Contract.RequiresNonNull(messageBus);
+        Contract.RequiresNonNull(rmsm);
+        Contract.RequiresNonNull(clock);
 
         this.ctx = ctx;
         this.messageBus = messageBus;
@@ -88,7 +88,7 @@ public abstract class StratumServer
 
     protected Task RunAsync(CancellationToken ct, params StratumEndpoint[] endpoints)
     {
-        Contract.RequiresNonNull(endpoints, nameof(endpoints));
+        Contract.RequiresNonNull(endpoints);
 
         logger.Info(() => $"Stratum ports {string.Join(", ", endpoints.Select(x => $"{x.IPEndPoint.Address}:{x.IPEndPoint.Port}").ToArray())} online");
 
@@ -99,7 +99,7 @@ public abstract class StratumServer
             server.Bind(port.IPEndPoint);
             server.Listen();
 
-            return Task.Run(()=> Listen(server, port, ct), ct);
+            return Listen(server, port, ct);
         }).ToArray();
 
         return Task.WhenAll(tasks);
@@ -154,9 +154,9 @@ public abstract class StratumServer
                 return;
 
             // init connection
-            var connection = new StratumConnection(logger, rmsm, clock, CorrelationIdGenerator.GetNextId());
+            var connection = new StratumConnection(logger, rmsm, clock, CorrelationIdGenerator.GetNextId(), clusterConfig.Logging.GPDRCompliant);
 
-            logger.Info(() => $"[{connection.ConnectionId}] Accepting connection from {remoteEndpoint.Address}:{remoteEndpoint.Port} ...");
+            logger.Info(() => $"[{connection.ConnectionId}] Accepting connection from {remoteEndpoint.Address.CensorOrReturn(clusterConfig.Logging.GPDRCompliant)}:{remoteEndpoint.Port} ...");
 
             RegisterConnection(connection);
             OnConnect(connection, port.IPEndPoint);
@@ -189,13 +189,17 @@ public abstract class StratumServer
         if(banManager?.IsBanned(connection.RemoteEndpoint.Address) == true)
         {
             logger.Info(() => $"[{connection.ConnectionId}] Disconnecting banned client @ {connection.RemoteEndpoint.Address}");
-            CloseConnection(connection);
+            Disconnect(connection);
             return;
         }
 
         logger.Debug(() => $"[{connection.ConnectionId}] Dispatching request '{request.Method}' [{request.Id}]");
 
-        await OnRequestAsync(connection, new Timestamped<JsonRpcRequest>(request, clock.Now), ct);
+        var tsRequest = new Timestamped<JsonRpcRequest>(request, clock.Now);
+
+        await OnRequestAsync(connection, tsRequest, ct);
+
+        PublishTelemetry(TelemetryCategory.StratumRequest, request.Method, clock.Now - tsRequest.Timestamp);
     }
 
     protected void OnConnectionError(StratumConnection connection, Exception ex)
@@ -281,13 +285,11 @@ public abstract class StratumServer
         UnregisterConnection(connection);
     }
 
-    protected void CloseConnection(StratumConnection connection)
+    protected void Disconnect(StratumConnection connection)
     {
-        Contract.RequiresNonNull(connection, nameof(connection));
+        Contract.RequiresNonNull(connection);
 
         connection.Disconnect();
-
-        UnregisterConnection(connection);
     }
 
     private X509Certificate2 GetTlsCert(StratumEndpoint port)
@@ -325,16 +327,14 @@ public abstract class StratumServer
         return false;
     }
 
-    protected IEnumerable<Task> TaskForEach(Func<StratumConnection, Task> func)
-    {
-        var tmp = connections.Values.ToArray();
-
-        return tmp.Where(x=> x.IsAlive).Select(func);
-    }
-
     protected void PublishTelemetry(TelemetryCategory cat, TimeSpan elapsed, bool? success = null, int? total = null)
     {
         messageBus.SendTelemetry(poolConfig.Id, cat, elapsed, success, null, total);
+    }
+
+    protected void PublishTelemetry(TelemetryCategory cat, string info, TimeSpan elapsed, bool? success = null, int? total = null)
+    {
+        messageBus.SendTelemetry(poolConfig.Id, cat, info, elapsed, success, null, total);
     }
 
     protected abstract Task OnRequestAsync(StratumConnection connection, Timestamped<JsonRpcRequest> request, CancellationToken ct);

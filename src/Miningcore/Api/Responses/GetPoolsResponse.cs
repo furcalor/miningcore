@@ -16,6 +16,9 @@ public class ApiCoinConfig
     public string Website { get; set; }
 
     [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string Market { get; set; }
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Family { get; set; }
 
     [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -69,6 +72,7 @@ public partial class PoolInfo
     public decimal TotalPaid { get; set; }
     public uint TotalBlocks { get; set; }
     public DateTime? LastPoolBlockTime { get; set; }
+    public double PoolEffort { get; set; }
 }
 
 public class GetPoolsResponse

@@ -13,6 +13,12 @@ public static unsafe class Multihash
     [DllImport("libmultihash", EntryPoint = "sha256csm_export", CallingConvention = CallingConvention.Cdecl)]
     public static extern void sha256csm(byte* input, void* output, uint inputLength);
 
+    [DllImport("libmultihash", EntryPoint = "sha3_256_export", CallingConvention = CallingConvention.Cdecl)]
+    public static extern void sha3_256(byte* input, void* output, uint inputLength);
+
+    [DllImport("libmultihash", EntryPoint = "sha3_512_export", CallingConvention = CallingConvention.Cdecl)]
+    public static extern void sha3_512(byte* input, void* output, uint inputLength);
+
     [DllImport("libmultihash", EntryPoint = "hmq17_export", CallingConvention = CallingConvention.Cdecl)]
     public static extern void hmq17(byte* input, void* output, uint inputLength);
 
@@ -138,4 +144,10 @@ public static unsafe class Multihash
 
     [DllImport("libmultihash", EntryPoint = "equihash_verify_96_5_export", CallingConvention = CallingConvention.Cdecl)]
     public static extern bool equihash_verify_96_5(byte* header, int headerLength, byte* solution, int solutionLength, string personalization);
+
+    [DllImport("libmultihash", EntryPoint = "sha512_256_export", CallingConvention = CallingConvention.Cdecl)]
+    public static extern void sha512_256(byte* input, void* output, uint inputLength);
+
+    [DllImport("libmultihash", EntryPoint = "sha256dt_export", CallingConvention = CallingConvention.Cdecl)]
+    public static extern void sha256dt(byte* input, void* output);
 }

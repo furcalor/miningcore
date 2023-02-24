@@ -29,6 +29,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "geek.h"
 #include "qubit.h"
 #include "s3.h"
+#include "verthash/tiny_sha3/sha3.h"
 #include "hefty1.h"
 #include "shavite3.h"
 #include "x13.h"
@@ -48,6 +49,8 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "x16rv2.h"
 #include "x21s.h"
 #include "sha256csm.h"
+#include "sha512_256.h"
+#include "sha256dt.h"
 #include "hmq17.h"
 #include "phi.h"
 #include "verthash/h2.h"
@@ -79,6 +82,16 @@ extern "C" MODULE_API void quark_export(const char* input, char* output, uint32_
 extern "C" MODULE_API void sha256csm_export(const char* input, char* output, uint32_t input_len)
 {
     sha256csm_hash(input, output, input_len);
+}
+
+extern "C" MODULE_API void sha3_256_export(const char* input, char* output, uint32_t input_len)
+{
+    sha3(input, input_len, output, 32);
+}
+
+extern "C" MODULE_API void sha3_512_export(const char* input, char* output, uint32_t input_len)
+{
+    sha3(input, input_len, output, 64);
 }
 
 extern "C" MODULE_API void hmq17_export(const char* input, char* output, uint32_t input_len)
@@ -256,6 +269,16 @@ extern "C" MODULE_API void x21s_export(const char* input, char* output, uint32_t
 extern "C" MODULE_API void x22i_export(const char* input, char* output, uint32_t input_len)
 {
     x22i_hash(input, output, input_len);
+}
+
+extern "C" MODULE_API void sha512_256_export(const unsigned char* input, unsigned char* output, uint32_t input_len)
+{
+    sha512_256(input, input_len, output);
+}
+
+extern "C" MODULE_API void sha256dt_export(const char* input, char* output)
+{
+    sha256dt_hash(input, output);
 }
 
 extern "C" MODULE_API int verthash_init_export(const char* filename, int createIfMissing)

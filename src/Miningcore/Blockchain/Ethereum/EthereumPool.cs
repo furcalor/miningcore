@@ -151,11 +151,14 @@ public class EthereumPool : PoolBase
 
         else
         {
-            logger.Info(() => $"[{connection.ConnectionId}] Banning unauthorized worker {minerName} for {loginFailureBanTimeout.TotalSeconds} sec");
+            if(clusterConfig?.Banning?.BanOnLoginFailure is null or true)
+            {
+                logger.Info(() => $"[{connection.ConnectionId}] Banning unauthorized worker {minerName} for {loginFailureBanTimeout.TotalSeconds} sec");
 
-            banManager.Ban(connection.RemoteEndpoint.Address, loginFailureBanTimeout);
+                banManager.Ban(connection.RemoteEndpoint.Address, loginFailureBanTimeout);
 
-            CloseConnection(connection);
+                Disconnect(connection);
+            }
         }
     }
 
@@ -205,7 +208,7 @@ public class EthereumPool : PoolBase
             await connection.RespondAsync(true, request.Id);
 
             // publish
-            messageBus.SendMessage(new StratumShare(connection, share));
+            messageBus.SendMessage(share);
 
             // telemetry
             PublishTelemetry(TelemetryCategory.Share, clock.Now - tsRequest.Timestamp.UtcDateTime, true);
@@ -218,7 +221,8 @@ public class EthereumPool : PoolBase
 
             // update client stats
             context.Stats.ValidShares++;
-            await UpdateVarDiffAsync(connection);
+
+            await UpdateVarDiffAsync(connection, false, ct);
         }
 
         catch(StratumException ex)
@@ -323,11 +327,14 @@ public class EthereumPool : PoolBase
 
         else
         {
-            logger.Info(() => $"[{connection.ConnectionId}] Banning unauthorized worker {minerName} for {loginFailureBanTimeout.TotalSeconds} sec");
+            if(clusterConfig?.Banning?.BanOnLoginFailure is null or true)
+            {
+                banManager.Ban(connection.RemoteEndpoint.Address, loginFailureBanTimeout);
 
-            banManager.Ban(connection.RemoteEndpoint.Address, loginFailureBanTimeout);
+                logger.Info(() => $"[{connection.ConnectionId}] Banning unauthorized worker {minerName} for {loginFailureBanTimeout.TotalSeconds} sec");
 
-            CloseConnection(connection);
+                Disconnect(connection);
+            }
         }
     }
 
@@ -410,18 +417,15 @@ public class EthereumPool : PoolBase
         return context.Worker;
     }
 
-    protected virtual Task OnNewJobAsync()
+    protected virtual async Task OnNewJobAsync()
     {
         var currentJobParams = manager.GetJobParamsForStratum();
 
-        logger.Info(() => "Broadcasting job");
+        logger.Info(() => $"Broadcasting job {currentJobParams[0]}");
 
-        return Guard(Task.WhenAll(TaskForEach(async connection =>
+        await Guard(() => ForEachMinerAsync(async (connection, ct) =>
         {
             var context = connection.ContextAs<EthereumWorkerContext>();
-
-            if(!context.IsSubscribed || !context.IsAuthorized || CloseIfDead(connection, context))
-                return;
 
             switch(context.ProtocolVersion)
             {
@@ -433,7 +437,7 @@ public class EthereumPool : PoolBase
                     await SendJob(context, connection, currentJobParams);
                     break;
             }
-        })), ex=> logger.Debug(() => $"{nameof(OnNewJobAsync)}: {ex.Message}"));
+        }));
     }
 
     protected void EnsureProtocolVersion(EthereumWorkerContext context, int version)
@@ -523,18 +527,19 @@ public class EthereumPool : PoolBase
 
     public override double ShareMultiplier => 1;
 
-    protected override async Task OnVarDiffUpdateAsync(StratumConnection connection, double newDiff)
+    protected override async Task OnVarDiffUpdateAsync(StratumConnection connection, double newDiff, CancellationToken ct)
     {
-        await base.OnVarDiffUpdateAsync(connection, newDiff);
+        await base.OnVarDiffUpdateAsync(connection, newDiff, ct);
 
-        // apply immediately and notify client
         var context = connection.ContextAs<EthereumWorkerContext>();
 
-        if(context.ApplyPendingDifficulty())
+        if(context.HasPendingDifficulty)
         {
             switch(context.ProtocolVersion)
             {
                 case 1:
+                    context.ApplyPendingDifficulty();
+
                     await SendWork(context, connection, 0);
                     break;
 

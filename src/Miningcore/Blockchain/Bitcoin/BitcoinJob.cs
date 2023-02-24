@@ -19,7 +19,6 @@ namespace Miningcore.Blockchain.Bitcoin;
 
 public class BitcoinJob
 {
-    private const string SymbolRaptoreum = "RTM";
     protected IHashAlgorithm blockHasher;
     protected IMasterClock clock;
     protected IHashAlgorithm coinbaseHasher;
@@ -244,8 +243,11 @@ public class BitcoinJob
         if(coin.HasMasterNodes)
             rewardToPool = CreateMasternodeOutputs(tx, rewardToPool);
 
-        if (coin.HasFounderFee)
+        if(coin.HasFounderFee)
             rewardToPool = CreateFounderOutputs(tx, rewardToPool);
+
+        if(coin.HasMinerFund)
+            rewardToPool = CreateMinerFundOutputs(tx, rewardToPool);
 
         // Remaining amount goes to pool
         tx.Outputs.Add(rewardToPool, poolAddressDestination);
@@ -490,10 +492,10 @@ public class BitcoinJob
 
     protected virtual Money CreateFounderOutputs(Transaction tx, Money reward)
     {
-        if (founderParameters.Founder != null)
+        if(founderParameters.Founder != null)
         {
             Founder[] founders;
-            if (founderParameters.Founder.Type == JTokenType.Array)
+            if(founderParameters.Founder.Type == JTokenType.Array)
                 founders = founderParameters.Founder.ToObject<Founder[]>();
             else
                 founders = new[] { founderParameters.Founder.ToObject<Founder>() };
@@ -519,6 +521,27 @@ public class BitcoinJob
 
     #endregion // Founder
 
+    #region Minerfund
+
+    protected MinerFundTemplateExtra minerFundParameters;
+
+    protected virtual Money CreateMinerFundOutputs(Transaction tx, Money reward)
+    {
+        var payeeReward = minerFundParameters.MinimumValue;
+
+        if(!string.IsNullOrEmpty(minerFundParameters.Addresses?.FirstOrDefault()))
+        {
+            var payeeAddress = BitcoinUtils.AddressToDestination(minerFundParameters.Addresses[0], network);
+            tx.Outputs.Add(payeeReward, payeeAddress);
+        }
+
+        reward -= payeeReward;
+
+        return reward;
+    }
+
+    #endregion // Founder
+
     #region API-Surface
 
     public BlockTemplate BlockTemplate { get; protected set; }
@@ -533,15 +556,15 @@ public class BitcoinJob
         bool isPoS, double shareMultiplier, IHashAlgorithm coinbaseHasher,
         IHashAlgorithm headerHasher, IHashAlgorithm blockHasher)
     {
-        Contract.RequiresNonNull(blockTemplate, nameof(blockTemplate));
-        Contract.RequiresNonNull(pc, nameof(pc));
-        Contract.RequiresNonNull(cc, nameof(cc));
-        Contract.RequiresNonNull(clock, nameof(clock));
-        Contract.RequiresNonNull(poolAddressDestination, nameof(poolAddressDestination));
-        Contract.RequiresNonNull(coinbaseHasher, nameof(coinbaseHasher));
-        Contract.RequiresNonNull(headerHasher, nameof(headerHasher));
-        Contract.RequiresNonNull(blockHasher, nameof(blockHasher));
-        Contract.Requires<ArgumentException>(!string.IsNullOrEmpty(jobId), $"{nameof(jobId)} must not be empty");
+        Contract.RequiresNonNull(blockTemplate);
+        Contract.RequiresNonNull(pc);
+        Contract.RequiresNonNull(cc);
+        Contract.RequiresNonNull(clock);
+        Contract.RequiresNonNull(poolAddressDestination);
+        Contract.RequiresNonNull(coinbaseHasher);
+        Contract.RequiresNonNull(headerHasher);
+        Contract.RequiresNonNull(blockHasher);
+        Contract.Requires<ArgumentException>(!string.IsNullOrEmpty(jobId));
 
         coin = pc.Template.As<BitcoinTemplate>();
         networkParams = coin.GetNetwork(network.ChainName);
@@ -570,7 +593,7 @@ public class BitcoinJob
         {
             masterNodeParameters = BlockTemplate.Extra.SafeExtensionDataAs<MasterNodeBlockTemplateExtra>();
 
-            if(coin.Symbol == SymbolRaptoreum)
+            if(coin.HasSmartNodes)
             {
                 if(masterNodeParameters.Extra?.ContainsKey("smartnode") == true)
                 {
@@ -589,8 +612,11 @@ public class BitcoinJob
         if(coin.HasPayee)
             payeeParameters = BlockTemplate.Extra.SafeExtensionDataAs<PayeeBlockTemplateExtra>();
 
-        if (coin.HasFounderFee)
+        if(coin.HasFounderFee)
             founderParameters = BlockTemplate.Extra.SafeExtensionDataAs<FounderBlockTemplateExtra>();
+
+        if(coin.HasMinerFund)
+            minerFundParameters = BlockTemplate.Extra.SafeExtensionDataAs<MinerFundTemplateExtra>("coinbasetxn", "minerfund");
 
         this.coinbaseHasher = coinbaseHasher;
         this.headerHasher = headerHasher;
@@ -635,10 +661,10 @@ public class BitcoinJob
     public virtual (Share Share, string BlockHex) ProcessShare(StratumConnection worker,
         string extraNonce2, string nTime, string nonce, string versionBits = null)
     {
-        Contract.RequiresNonNull(worker, nameof(worker));
-        Contract.Requires<ArgumentException>(!string.IsNullOrEmpty(extraNonce2), $"{nameof(extraNonce2)} must not be empty");
-        Contract.Requires<ArgumentException>(!string.IsNullOrEmpty(nTime), $"{nameof(nTime)} must not be empty");
-        Contract.Requires<ArgumentException>(!string.IsNullOrEmpty(nonce), $"{nameof(nonce)} must not be empty");
+        Contract.RequiresNonNull(worker);
+        Contract.Requires<ArgumentException>(!string.IsNullOrEmpty(extraNonce2));
+        Contract.Requires<ArgumentException>(!string.IsNullOrEmpty(nTime));
+        Contract.Requires<ArgumentException>(!string.IsNullOrEmpty(nonce));
 
         var context = worker.ContextAs<BitcoinWorkerContext>();
 

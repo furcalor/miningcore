@@ -1,14 +1,21 @@
-using System.Collections.Generic;
-using Miningcore.Configuration;
+using System;
+using Autofac;
+using Newtonsoft.Json;
 
 namespace Miningcore.Tests;
 
 public abstract class TestBase
 {
-    protected Dictionary<string, CoinTemplate> coinTemplates;
-
     protected TestBase()
     {
         ModuleInitializer.Initialize();
+
+        container = ModuleInitializer.Container;
+        jsonSerializerSettings = container.Resolve<JsonSerializerSettings>();
     }
+
+    protected readonly IContainer container;
+    protected readonly JsonSerializerSettings jsonSerializerSettings;
+
+    protected bool IsGithubActionRunner => Environment.GetEnvironmentVariable("GITHUB_ACTION") != null;
 }

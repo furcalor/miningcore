@@ -3,9 +3,11 @@ using Autofac;
 using Miningcore.Api;
 using Miningcore.Banning;
 using Miningcore.Blockchain.Bitcoin;
+using Miningcore.Blockchain.Conceal;
 using Miningcore.Blockchain.Cryptonote;
 using Miningcore.Blockchain.Equihash;
 using Miningcore.Blockchain.Ethereum;
+using Miningcore.Blockchain.Ravencoin;
 using Miningcore.Configuration;
 using Miningcore.Crypto;
 using Miningcore.Crypto.Hashing.Equihash;
@@ -54,8 +56,6 @@ public class AutofacModule : Module
 
         builder.RegisterInstance(new RecyclableMemoryStreamManager
         {
-            MaximumFreeSmallPoolBytes = 0x100000,   // 1 MB
-            MaximumFreeLargePoolBytes = 0x1000000,  // 16 MB
             ThrowExceptionOnToArray = true
         });
 
@@ -149,7 +149,12 @@ public class AutofacModule : Module
         // Bitcoin and family
 
         builder.RegisterType<BitcoinJobManager>();
+        
+        //////////////////////
+        // Conceal
 
+        builder.RegisterType<ConcealJobManager>();
+        
         //////////////////////
         // Cryptonote
 
@@ -171,6 +176,11 @@ public class AutofacModule : Module
 
         builder.RegisterType<EquihashJobManager>();
         builder.RegisterType<ErgoJobManager>();
+
+        //////////////////////
+        // Ravencoin
+
+        builder.RegisterType<RavencoinJobManager>();
 
         base.Load(builder);
     }

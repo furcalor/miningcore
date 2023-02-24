@@ -84,6 +84,24 @@ public partial class BitcoinTemplate
     #endregion
 }
 
+public partial class RavencoinTemplate
+{
+    public RavencoinTemplate() : base()
+    {
+        KawpowHasher = new Crypto.Hashing.Kawpow.EthashLight();
+    }
+
+    #region Overrides of CoinTemplate
+
+    public override string GetAlgorithmName()
+    {
+        return KawpowHasher.AlgoName;
+    }
+
+    #endregion
+}
+
+
 public partial class EquihashCoinTemplate
 {
     public partial class EquihashNetworkParams
@@ -146,19 +164,37 @@ public partial class EquihashCoinTemplate
     #endregion
 }
 
+public partial class ConcealCoinTemplate
+{
+    #region Overrides of CoinTemplate
+
+    public override string GetAlgorithmName()
+    {
+        //        switch(Hash)
+        //        {
+        //            case CryptonightHashType.RandomX:
+        //                return "RandomX";
+        //        }
+
+        return Hash.ToString();
+    }
+
+    #endregion
+}
+
 public partial class CryptonoteCoinTemplate
 {
     #region Overrides of CoinTemplate
 
     public override string GetAlgorithmName()
     {
-        switch(Hash)
-        {
-            case CryptonightHashType.RandomX:
-                return "RandomX";
-        }
+        //        switch(Hash)
+        //        {
+        //            case CryptonightHashType.RandomX:
+        //                return "RandomX";
+        //        }
 
-        throw new NotSupportedException("Invalid hash type");
+        return Hash.ToString();
     }
 
     #endregion

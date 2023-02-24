@@ -17,7 +17,7 @@ public class ShareRelay : IHostedService
 {
     public ShareRelay(ClusterConfig clusterConfig, IMessageBus messageBus)
     {
-        Contract.RequiresNonNull(messageBus, nameof(messageBus));
+        Contract.RequiresNonNull(messageBus);
 
         this.clusterConfig = clusterConfig;
         this.messageBus = messageBus;
@@ -101,7 +101,7 @@ public class ShareRelay : IHostedService
 
     public Task StartAsync(CancellationToken ct)
     {
-        messageBus.Listen<StratumShare>().Subscribe(x => queue.Add(x.Share, ct));
+        messageBus.Listen<Share>().Subscribe(x => queue.Add(x, ct));
 
         pubSocket = new ZSocket(ZSocketType.PUB);
 

@@ -8,7 +8,7 @@ public class EthashFull : IDisposable
 {
     public EthashFull(int numCaches, string dagDir)
     {
-        Contract.Requires<ArgumentException>(!string.IsNullOrEmpty(dagDir), $"{nameof(dagDir)} must not be empty");
+        Contract.Requires<ArgumentException>(!string.IsNullOrEmpty(dagDir));
 
         this.numCaches = numCaches;
         this.dagDir = dagDir;
@@ -82,7 +82,9 @@ public class EthashFull : IDisposable
             result.LastUsed = DateTime.Now;
         }
 
+        // get/generate current one
         await result.GenerateAsync(dagDir, logger, ct);
+
         return result;
     }
 }

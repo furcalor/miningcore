@@ -17,8 +17,8 @@ public class SOLOPaymentScheme : IPayoutScheme
         IShareRepository shareRepo,
         IBalanceRepository balanceRepo)
     {
-        Contract.RequiresNonNull(shareRepo, nameof(shareRepo));
-        Contract.RequiresNonNull(balanceRepo, nameof(balanceRepo));
+        Contract.RequiresNonNull(shareRepo);
+        Contract.RequiresNonNull(balanceRepo);
 
         this.shareRepo = shareRepo;
         this.balanceRepo = balanceRepo;
@@ -46,7 +46,7 @@ public class SOLOPaymentScheme : IPayoutScheme
 
             if(amount > 0)
             {
-                logger.Info(() => $"Adding {payoutHandler.FormatAmount(amount)} to balance of {address} for block {block.BlockHeight}");
+                logger.Info(() => $"Crediting {address} with {payoutHandler.FormatAmount(amount)} for block {block.BlockHeight}");
 
                 await balanceRepo.AddAmountAsync(con, tx, poolConfig.Id, address, amount, $"Reward for block {block.BlockHeight}");
             }

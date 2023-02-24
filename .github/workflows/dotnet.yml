@@ -2,9 +2,9 @@ name: .NET
 
 on:
   push:
-    branches: [ master, oliverw ]
+    branches: [ master, dev ]
   pull_request:
-    branches: [ master, oliverw ]
+    branches: [ master, dev ]
 
 jobs:
   build:
@@ -27,4 +27,4 @@ jobs:
     - name: Build
       run: dotnet build --no-restore src
     - name: Test
-      run: dotnet test --no-build --verbosity normal src
+      run: dotnet test --logger:"console;verbosity=detailed" --no-build --verbosity normal src

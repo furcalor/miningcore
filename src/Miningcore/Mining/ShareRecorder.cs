@@ -36,12 +36,12 @@ public class ShareRecorder : BackgroundService
         ClusterConfig clusterConfig,
         IMessageBus messageBus)
     {
-        Contract.RequiresNonNull(cf, nameof(cf));
-        Contract.RequiresNonNull(mapper, nameof(mapper));
-        Contract.RequiresNonNull(shareRepo, nameof(shareRepo));
-        Contract.RequiresNonNull(blockRepo, nameof(blockRepo));
-        Contract.RequiresNonNull(jsonSerializerSettings, nameof(jsonSerializerSettings));
-        Contract.RequiresNonNull(messageBus, nameof(messageBus));
+        Contract.RequiresNonNull(cf);
+        Contract.RequiresNonNull(mapper);
+        Contract.RequiresNonNull(shareRepo);
+        Contract.RequiresNonNull(blockRepo);
+        Contract.RequiresNonNull(jsonSerializerSettings);
+        Contract.RequiresNonNull(messageBus);
 
         this.cf = cf;
         this.mapper = mapper;
@@ -116,7 +116,7 @@ public class ShareRecorder : BackgroundService
     private Task OnPolicyFallbackAsync(Exception ex, Context context)
     {
         logger.Warn(() => $"Fallback due to {ex.Source}: {ex.GetType().Name} ({ex.Message})");
-        return Task.FromResult(true);
+        return Task.CompletedTask;
     }
 
     private async Task OnExecutePolicyFallbackAsync(Context context, CancellationToken ct)
@@ -312,7 +312,7 @@ public class ShareRecorder : BackgroundService
 
         var fallbackOnBrokenCircuit = Policy
             .Handle<BrokenCircuitException>()
-            .FallbackAsync(OnExecutePolicyFallbackAsync, (ex, context) => Task.FromResult(true));
+            .FallbackAsync(OnExecutePolicyFallbackAsync, (ex, context) => Task.CompletedTask);
 
         faultPolicy = Policy.WrapAsync(
             fallbackOnBrokenCircuit,
@@ -323,10 +323,10 @@ public class ShareRecorder : BackgroundService
     {
         logger.Info(() => "Online");
 
-        return messageBus.Listen<StratumShare>()
+        return messageBus.Listen<Share>()
             .ObserveOn(TaskPoolScheduler.Default)
-            .Where(x => x.Share != null)
-            .Select(x => x.Share)
+            .Where(x => x != null)
+            .Select(x => x)
             .Buffer(TimeSpan.FromSeconds(5), 250)
             .Where(shares => shares.Any())
             .Select(shares => Observable.FromAsync(() =>
