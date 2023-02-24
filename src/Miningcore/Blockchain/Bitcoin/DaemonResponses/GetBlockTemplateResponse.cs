@@ -87,6 +87,17 @@ public class BlockTemplate
     /// </summary>
     [JsonProperty("default_witness_commitment")]
     public string DefaultWitnessCommitment { get; set; }
+    
+    /// <summary>
+    /// KawPow Community Address
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string CommunityAutonomousAddress { get; set; }
+    /// <summary>
+    /// KawPow Community Value
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public long CommunityAutonomousValue { get; set; }
 
     [JsonExtensionData]
     public IDictionary<string, object> Extra { get; set; }
